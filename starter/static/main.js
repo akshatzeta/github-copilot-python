@@ -2,6 +2,25 @@
 const SIZE = 9;
 let puzzle = [];
 
+function showMessage(text, color = '#d32f2f') {
+  const message = document.getElementById('message');
+  message.style.color = color;
+  message.innerText = text;
+}
+
+async function readApiResponse(response) {
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'The request could not be completed.');
+  }
+  return data;
+}
+
+function updateSelectedDifficulty(difficulty) {
+  document.getElementById('selected-difficulty').innerText =
+    difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+}
+
 function createBoardElement() {
   const boardDiv = document.getElementById('sudoku-board');
   boardDiv.innerHTML = '';
@@ -48,10 +67,18 @@ function renderPuzzle(puz) {
 }
 
 async function newGame() {
-  const res = await fetch('/new');
-  const data = await res.json();
-  renderPuzzle(data.puzzle);
-  document.getElementById('message').innerText = '';
+  const difficulty = document.getElementById('difficulty').value;
+  const query = new URLSearchParams({difficulty});
+
+  try {
+    const response = await fetch(`/new?${query}`);
+    const data = await readApiResponse(response);
+    renderPuzzle(data.puzzle);
+    updateSelectedDifficulty(data.difficulty);
+    showMessage('', '#388e3c');
+  } catch (error) {
+    showMessage(`Unable to start a new game: ${error.message}`);
+  }
 }
 
 async function checkSolution() {
@@ -66,39 +93,41 @@ async function checkSolution() {
       board[i][j] = val ? parseInt(val, 10) : 0;
     }
   }
-  const res = await fetch('/check', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({board})
-  });
-  const data = await res.json();
-  const msg = document.getElementById('message');
-  if (data.error) {
-    msg.style.color = '#d32f2f';
-    msg.innerText = data.error;
-    return;
-  }
-  const incorrect = new Set(data.incorrect.map(x => x[0]*SIZE + x[1]));
-  for (let idx = 0; idx < inputs.length; idx++) {
-    const inp = inputs[idx];
-    if (inp.disabled) continue;
-    inp.className = 'sudoku-cell';
-    if (incorrect.has(idx)) {
-      inp.className = 'sudoku-cell incorrect';
+  try {
+    const response = await fetch('/check', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({board})
+    });
+    const data = await readApiResponse(response);
+    const msg = document.getElementById('message');
+    if (data.error) {
+      showMessage(data.error);
+      return;
     }
-  }
-  if (incorrect.size === 0) {
-    msg.style.color = '#388e3c';
-    msg.innerText = 'Congratulations! You solved it!';
-  } else {
-    msg.style.color = '#d32f2f';
-    msg.innerText = 'Some cells are incorrect.';
+    const incorrect = new Set(data.incorrect.map(x => x[0]*SIZE + x[1]));
+    for (let idx = 0; idx < inputs.length; idx++) {
+      const inp = inputs[idx];
+      if (inp.disabled) continue;
+      inp.className = 'sudoku-cell';
+      if (incorrect.has(idx)) {
+        inp.className = 'sudoku-cell incorrect';
+      }
+    }
+    if (incorrect.size === 0) {
+      showMessage('Congratulations! You solved it!', '#388e3c');
+    } else {
+      showMessage('Some cells are incorrect.');
+    }
+  } catch (error) {
+    showMessage(`Unable to check the puzzle: ${error.message}`);
   }
 }
 
 // Wire buttons
 window.addEventListener('load', () => {
   document.getElementById('new-game').addEventListener('click', newGame);
+  document.getElementById('difficulty').addEventListener('change', newGame);
   document.getElementById('check-solution').addEventListener('click', checkSolution);
   // initialize
   newGame();

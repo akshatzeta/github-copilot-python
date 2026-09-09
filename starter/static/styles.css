@@ -11,6 +11,25 @@ h1 {
     color: #333;
 }
 
+.difficulty-control {
+    margin: 20px auto;
+}
+
+.difficulty-control label {
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+#difficulty {
+    padding: 7px 10px;
+    font-size: 16px;
+}
+
+#selected-difficulty {
+    margin-left: 12px;
+    color: #333;
+}
+
 #sudoku-board {
     display: inline-block;
     margin: 30px auto;

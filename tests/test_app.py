@@ -8,6 +8,10 @@ def test_index_route_renders_game_page(client):
 
     assert response.status_code == 200
     assert b"Sudoku Game" in response.data
+    assert b'id="difficulty"' in response.data
+    assert b'value="easy"' in response.data
+    assert b'value="medium"' in response.data
+    assert b'value="hard"' in response.data
 
 
 def test_new_game_route_returns_a_puzzle_with_default_clues(client):
