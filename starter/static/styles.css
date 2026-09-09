@@ -30,6 +30,18 @@ h1 {
     color: #333;
 }
 
+.timer {
+    margin: 20px auto;
+    font-size: 18px;
+    color: #333;
+}
+
+#timer {
+    margin-left: 8px;
+    font-variant-numeric: tabular-nums;
+    font-weight: bold;
+}
+
 #sudoku-board {
     display: inline-block;
     margin: 30px auto;
@@ -65,6 +77,11 @@ h1 {
 
 .sudoku-cell.incorrect {
     background: #ffcdd2;
+}
+
+.sudoku-cell.hinted {
+    background: #fff3cd;
+    font-weight: bold;
 }
 
 .sudoku-cell:nth-child(3),

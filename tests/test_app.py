@@ -2,6 +2,8 @@ import random
 
 import pytest
 
+import app as sudoku_app
+
 
 def test_index_route_renders_game_page(client):
     response = client.get("/")
@@ -12,6 +14,9 @@ def test_index_route_renders_game_page(client):
     assert b'value="easy"' in response.data
     assert b'value="medium"' in response.data
     assert b'value="hard"' in response.data
+    assert b'id="timer"' in response.data
+    assert b'00:00' in response.data
+    assert b'id="hint"' in response.data
 
 
 def test_new_game_route_returns_a_puzzle_with_default_clues(client):
@@ -112,3 +117,70 @@ def test_check_route_reports_incorrect_cells(client):
 
     assert response.status_code == 200
     assert response.get_json() == {"incorrect": [[0, 0]]}
+
+
+def test_hint_route_returns_one_empty_cell_without_exposing_solution(client):
+    random.seed(2468)
+    puzzle_response = client.get("/new?clues=40")
+    puzzle = puzzle_response.get_json()["puzzle"]
+    empty_cell = next(
+        (row, col)
+        for row in range(9)
+        for col in range(9)
+        if puzzle[row][col] == 0
+    )
+
+    response = client.post("/hint", json={"board": puzzle})
+
+    assert response.status_code == 200
+    hint = response.get_json()
+    assert (hint["row"], hint["col"]) == empty_cell
+    assert hint["value"] == sudoku_app.CURRENT["solution"][hint["row"]][hint["col"]]
+    assert "solution" not in hint
+
+
+def test_hint_route_does_not_overwrite_existing_user_entry(client):
+    random.seed(2468)
+    puzzle_response = client.get("/new?clues=40")
+    puzzle = puzzle_response.get_json()["puzzle"]
+    existing_entry = next(
+        (row, col)
+        for row in range(9)
+        for col in range(9)
+        if puzzle[row][col] == 0
+    )
+    puzzle[existing_entry[0]][existing_entry[1]] = 1
+
+    response = client.post("/hint", json={"board": puzzle})
+
+    assert response.status_code == 200
+    hint = response.get_json()
+    assert (hint["row"], hint["col"]) != existing_entry
+
+
+def test_hint_route_reports_when_no_empty_cells_are_available(client):
+    random.seed(2468)
+    puzzle_response = client.get("/new?clues=81")
+    puzzle = puzzle_response.get_json()["puzzle"]
+
+    response = client.post("/hint", json={"board": puzzle})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "No empty cells available for a hint"}
+
+
+@pytest.mark.parametrize("board", (None, [], [[0] * 9 for _ in range(8)]))
+def test_hint_route_rejects_malformed_board(client, board):
+    client.get("/new?clues=81")
+
+    response = client.post("/hint", json={"board": board})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "A valid 9x9 board is required"}
+
+
+def test_hint_route_requires_an_active_game(client):
+    response = client.post("/hint", json={"board": [[0] * 9 for _ in range(9)]})
+
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "No game in progress"}

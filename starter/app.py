@@ -58,5 +58,39 @@ def check_solution():
                 incorrect.append([i, j])
     return jsonify({'incorrect': incorrect})
 
+
+@app.route('/hint', methods=['POST'])
+def provide_hint():
+    data = request.get_json(silent=True)
+    puzzle = CURRENT.get('puzzle')
+    solution = CURRENT.get('solution')
+    if puzzle is None or solution is None:
+        return jsonify({'error': 'No game in progress'}), 400
+    if not isinstance(data, dict) or not _is_valid_board(data.get('board')):
+        return jsonify({'error': 'A valid 9x9 board is required'}), 400
+
+    board = data['board']
+    for row in range(sudoku_logic.SIZE):
+        for col in range(sudoku_logic.SIZE):
+            if puzzle[row][col] == sudoku_logic.EMPTY and board[row][col] == sudoku_logic.EMPTY:
+                return jsonify({
+                    'row': row,
+                    'col': col,
+                    'value': solution[row][col],
+                })
+
+    return jsonify({'error': 'No empty cells available for a hint'}), 400
+
+
+def _is_valid_board(board):
+    if not isinstance(board, list) or len(board) != sudoku_logic.SIZE:
+        return False
+    return all(
+        isinstance(row, list)
+        and len(row) == sudoku_logic.SIZE
+        and all(isinstance(value, int) and 0 <= value <= sudoku_logic.SIZE for value in row)
+        for row in board
+    )
+
 if __name__ == '__main__':
     app.run(debug=True)

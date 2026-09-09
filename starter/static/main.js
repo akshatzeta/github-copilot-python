@@ -1,6 +1,39 @@
 // Client-side rendering and interaction for the Flask-backed Sudoku
 const SIZE = 9;
 let puzzle = [];
+let elapsedSeconds = 0;
+let timerInterval = null;
+
+function formatTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+function updateTimerDisplay() {
+  document.getElementById('timer').innerText = formatTime(elapsedSeconds);
+}
+
+function stopTimer() {
+  if (timerInterval !== null) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function resetTimer() {
+  stopTimer();
+  elapsedSeconds = 0;
+  updateTimerDisplay();
+}
+
+function startTimer() {
+  resetTimer();
+  timerInterval = setInterval(() => {
+    elapsedSeconds += 1;
+    updateTimerDisplay();
+  }, 1000);
+}
 
 function showMessage(text, color = '#d32f2f') {
   const message = document.getElementById('message');
@@ -19,6 +52,19 @@ async function readApiResponse(response) {
 function updateSelectedDifficulty(difficulty) {
   document.getElementById('selected-difficulty').innerText =
     difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+}
+
+function readBoard() {
+  const inputs = document.getElementById('sudoku-board').getElementsByTagName('input');
+  const board = [];
+  for (let i = 0; i < SIZE; i++) {
+    board[i] = [];
+    for (let j = 0; j < SIZE; j++) {
+      const value = inputs[i * SIZE + j].value;
+      board[i][j] = value ? parseInt(value, 10) : 0;
+    }
+  }
+  return {board, inputs};
 }
 
 function createBoardElement() {
@@ -69,12 +115,14 @@ function renderPuzzle(puz) {
 async function newGame() {
   const difficulty = document.getElementById('difficulty').value;
   const query = new URLSearchParams({difficulty});
+  resetTimer();
 
   try {
     const response = await fetch(`/new?${query}`);
     const data = await readApiResponse(response);
     renderPuzzle(data.puzzle);
     updateSelectedDifficulty(data.difficulty);
+    startTimer();
     showMessage('', '#388e3c');
   } catch (error) {
     showMessage(`Unable to start a new game: ${error.message}`);
@@ -82,17 +130,7 @@ async function newGame() {
 }
 
 async function checkSolution() {
-  const boardDiv = document.getElementById('sudoku-board');
-  const inputs = boardDiv.getElementsByTagName('input');
-  const board = [];
-  for (let i = 0; i < SIZE; i++) {
-    board[i] = [];
-    for (let j = 0; j < SIZE; j++) {
-      const idx = i * SIZE + j;
-      const val = inputs[idx].value;
-      board[i][j] = val ? parseInt(val, 10) : 0;
-    }
-  }
+  const {board, inputs} = readBoard();
   try {
     const response = await fetch('/check', {
       method: 'POST',
@@ -115,7 +153,11 @@ async function checkSolution() {
       }
     }
     if (incorrect.size === 0) {
-      showMessage('Congratulations! You solved it!', '#388e3c');
+      stopTimer();
+      showMessage(
+        `Congratulations! You solved it in ${formatTime(elapsedSeconds)}!`,
+        '#388e3c'
+      );
     } else {
       showMessage('Some cells are incorrect.');
     }
@@ -124,11 +166,35 @@ async function checkSolution() {
   }
 }
 
+async function requestHint() {
+  const {board, inputs} = readBoard();
+
+  try {
+    const response = await fetch('/hint', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({board})
+    });
+    const data = await readApiResponse(response);
+    const input = inputs[data.row * SIZE + data.col];
+    if (!input || input.disabled || input.value) {
+      showMessage('The hint could not be applied to an empty cell.');
+      return;
+    }
+    input.value = data.value;
+    input.className = 'sudoku-cell hinted';
+    showMessage('A correct cell was filled in.', '#388e3c');
+  } catch (error) {
+    showMessage(`Unable to get a hint: ${error.message}`);
+  }
+}
+
 // Wire buttons
 window.addEventListener('load', () => {
   document.getElementById('new-game').addEventListener('click', newGame);
   document.getElementById('difficulty').addEventListener('change', newGame);
   document.getElementById('check-solution').addEventListener('click', checkSolution);
+  document.getElementById('hint').addEventListener('click', requestHint);
   // initialize
   newGame();
 });

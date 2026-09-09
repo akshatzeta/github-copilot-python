@@ -16,10 +16,15 @@
     </select>
     <span id="selected-difficulty" aria-live="polite">Medium</span>
   </div>
+  <div class="timer" aria-live="polite">
+    <span>Time</span>
+    <span id="timer" aria-label="Elapsed time">00:00</span>
+  </div>
   <div id="sudoku-board"></div>
   <div class="controls">
     <button id="new-game">New Game</button>
     <button id="check-solution">Check Solution</button>
+    <button id="hint">Hint</button>
     <span id="message" role="status" aria-live="polite"></span>
   </div>
   <script src="/static/main.js"></script>
