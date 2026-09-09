@@ -1,5 +1,7 @@
 import random
 
+import pytest
+
 import sudoku_logic
 
 
@@ -91,3 +93,42 @@ def test_full_range_clue_settings_return_valid_unique_puzzles():
 
         assert_valid_sudoku_board(solution)
         assert sudoku_logic.count_solutions(puzzle) == 1
+
+
+@pytest.mark.parametrize(
+    ("difficulty", "expected_clues"),
+    (("easy", 40), ("medium", 32), ("hard", 24)),
+)
+def test_difficulty_levels_generate_valid_unique_puzzles(
+    difficulty, expected_clues
+):
+    random.seed(expected_clues)
+
+    puzzle, solution = sudoku_logic.generate_puzzle(difficulty)
+
+    assert_valid_sudoku_board(solution)
+    assert sum(
+        value != sudoku_logic.EMPTY for row in puzzle for value in row
+    ) == expected_clues
+    assert all(
+        puzzle[row][column] in (sudoku_logic.EMPTY, solution[row][column])
+        for row in range(sudoku_logic.SIZE)
+        for column in range(sudoku_logic.SIZE)
+    )
+    assert sudoku_logic.count_solutions(puzzle) == 1
+
+
+@pytest.mark.parametrize("difficulty", ("unknown", "", "expert"))
+def test_invalid_difficulty_is_rejected(difficulty):
+    with pytest.raises(ValueError, match="difficulty must be one of"):
+        sudoku_logic.generate_puzzle(difficulty)
+
+
+def test_difficulty_keyword_is_supported_without_breaking_clue_api():
+    random.seed(9876)
+
+    puzzle, _ = sudoku_logic.generate_puzzle(difficulty="easy")
+
+    assert sum(
+        value != sudoku_logic.EMPTY for row in puzzle for value in row
+    ) == sudoku_logic.DIFFICULTY_CLUES["easy"]

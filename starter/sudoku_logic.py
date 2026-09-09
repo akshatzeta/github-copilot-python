@@ -4,6 +4,12 @@ import random
 SIZE = 9
 EMPTY = 0
 Board = list[list[int]]
+DIFFICULTY_CLUES = {
+    "easy": 40,
+    "medium": 32,
+    "hard": 24,
+}
+MAX_REMOVAL_ATTEMPTS = 20
 
 def deep_copy(board: Board) -> Board:
     return copy.deepcopy(board)
@@ -112,7 +118,36 @@ def remove_cells(board: Board, clues: int) -> None:
             board[row][col] = original_value
 
 
-def generate_puzzle(clues: int = 35) -> tuple[Board, Board]:
+def _clues_for_difficulty(difficulty: str) -> int:
+    if not isinstance(difficulty, str):
+        raise TypeError("difficulty must be a string")
+
+    normalized_difficulty = difficulty.strip().lower()
+    try:
+        return DIFFICULTY_CLUES[normalized_difficulty]
+    except KeyError:
+        valid_difficulties = ", ".join(DIFFICULTY_CLUES)
+        raise ValueError(
+            f"difficulty must be one of: {valid_difficulties}"
+        ) from None
+
+
+def generate_puzzle(
+    clues: int | str | None = None, *, difficulty: str | None = None
+) -> tuple[Board, Board]:
+    if isinstance(clues, str):
+        if difficulty is not None:
+            raise ValueError("provide either clues or difficulty, not both")
+        difficulty = clues
+        clues = None
+
+    if difficulty is not None:
+        if clues is not None:
+            raise ValueError("provide either clues or difficulty, not both")
+        clues = _clues_for_difficulty(difficulty)
+    elif clues is None:
+        clues = 35
+
     if not isinstance(clues, int):
         raise TypeError("clues must be an integer")
     if not 0 <= clues <= SIZE * SIZE:
@@ -121,6 +156,16 @@ def generate_puzzle(clues: int = 35) -> tuple[Board, Board]:
     board = create_empty_board()
     fill_board(board)
     solution = deep_copy(board)
-    remove_cells(board, clues)
-    puzzle = deep_copy(board)
-    return puzzle, solution
+
+    for _ in range(MAX_REMOVAL_ATTEMPTS):
+        puzzle = deep_copy(solution)
+        remove_cells(puzzle, clues)
+        filled_cells = sum(
+            value != EMPTY for row in puzzle for value in row
+        )
+        if filled_cells == clues:
+            return puzzle, solution
+
+    raise RuntimeError(
+        f"could not generate a unique puzzle with {clues} clues"
+    )
