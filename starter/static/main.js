@@ -6,6 +6,7 @@ let puzzle = [];
 let elapsedSeconds = 0;
 let timerInterval = null;
 let hasCompletedCurrentPuzzle = false;
+let hintsUsed = 0;
 
 function formatTime(totalSeconds) {
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -78,7 +79,10 @@ function getLeaderboardEntries() {
       .map((entry) => ({
         name: entry.name.trim() || 'Anonymous',
         difficulty: entry.difficulty,
-        time: Number(entry.time)
+        time: Number(entry.time),
+        hintsUsed: Number.isInteger(entry.hintsUsed) && entry.hintsUsed >= 0
+          ? entry.hintsUsed
+          : 0
       }));
   } catch (error) {
     console.warn('Unable to load leaderboard.', error);
@@ -115,6 +119,7 @@ function renderLeaderboard() {
       `<span class="leaderboard-name">${escapeHtml(entry.name)}</span>` +
       `<span class="leaderboard-time">${formatTime(entry.time)}</span>` +
       `<span class="leaderboard-difficulty">${escapeHtml(entry.difficulty)}</span>` +
+      `<span class="leaderboard-hints">Hints Used: ${entry.hintsUsed}</span>` +
       `</li>`
     ))
     .join('');
@@ -130,7 +135,8 @@ function saveCompletionToLeaderboard() {
   const entry = {
     name: sanitizedName,
     time: elapsedSeconds,
-    difficulty: document.getElementById('difficulty').value
+    difficulty: document.getElementById('difficulty').value,
+    hintsUsed
   };
 
   const leaderboard = getLeaderboardEntries();
@@ -326,6 +332,7 @@ async function newGame() {
   const difficulty = document.getElementById('difficulty').value;
   const query = new URLSearchParams({difficulty});
   hasCompletedCurrentPuzzle = false;
+  hintsUsed = 0;
   resetTimer();
 
   try {
@@ -402,6 +409,7 @@ async function requestHint() {
       return;
     }
     input.value = data.value;
+    hintsUsed += 1;
     input.classList.remove('invalid', 'conflict', 'incorrect');
     input.className = `${input.className} hinted`;
     showMessage('A correct cell was filled in.', '#388e3c');

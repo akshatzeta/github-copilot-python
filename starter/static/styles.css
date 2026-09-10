@@ -220,7 +220,7 @@ button:focus-visible {
 
 .leaderboard-item {
     display: grid;
-    grid-template-columns: 42px 1fr auto auto;
+    grid-template-columns: 42px 1fr auto auto auto;
     gap: 8px;
     align-items: center;
     padding: 8px 0;
@@ -246,7 +246,8 @@ button:focus-visible {
 }
 
 .leaderboard-time,
-.leaderboard-difficulty {
+.leaderboard-difficulty,
+.leaderboard-hints {
     color: var(--muted-text);
 }
 
@@ -302,7 +303,8 @@ button:focus-visible {
         grid-template-columns: 36px 1fr auto;
     }
 
-    .leaderboard-difficulty {
+    .leaderboard-difficulty,
+    .leaderboard-hints {
         grid-column: 2 / -1;
         text-align: left;
     }

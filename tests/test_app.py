@@ -34,6 +34,8 @@ def test_frontend_script_contains_local_storage_leaderboard_logic():
     assert "window.prompt" in script_contents
     assert "renderLeaderboard" in script_contents
     assert "saveCompletionToLeaderboard" in script_contents
+    assert "hintsUsed" in script_contents
+    assert "Hints Used" in script_contents
     assert "sudoku-theme" in script_contents
     assert "setTheme" in script_contents
 
