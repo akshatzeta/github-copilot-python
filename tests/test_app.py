@@ -1,8 +1,12 @@
 import random
+from pathlib import Path
 
 import pytest
 
 import app as sudoku_app
+
+
+FRONTEND_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "starter" / "static" / "main.js"
 
 
 def test_index_route_renders_game_page(client):
@@ -17,6 +21,18 @@ def test_index_route_renders_game_page(client):
     assert b'id="timer"' in response.data
     assert b'00:00' in response.data
     assert b'id="hint"' in response.data
+    assert b'Top 10 Leaderboard' in response.data
+    assert b'id="leaderboard-list"' in response.data
+
+
+def test_frontend_script_contains_local_storage_leaderboard_logic():
+    script_contents = FRONTEND_SCRIPT_PATH.read_text()
+
+    assert "sudoku-top-10" in script_contents
+    assert "localStorage" in script_contents
+    assert "window.prompt" in script_contents
+    assert "renderLeaderboard" in script_contents
+    assert "saveCompletionToLeaderboard" in script_contents
 
 
 def test_new_game_route_returns_a_puzzle_with_default_clues(client):
