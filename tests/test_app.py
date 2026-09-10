@@ -21,6 +21,7 @@ def test_index_route_renders_game_page(client):
     assert b'id="timer"' in response.data
     assert b'00:00' in response.data
     assert b'id="hint"' in response.data
+    assert b'id="theme-toggle"' in response.data
     assert b'Top 10 Leaderboard' in response.data
     assert b'id="leaderboard-list"' in response.data
 
@@ -33,6 +34,8 @@ def test_frontend_script_contains_local_storage_leaderboard_logic():
     assert "window.prompt" in script_contents
     assert "renderLeaderboard" in script_contents
     assert "saveCompletionToLeaderboard" in script_contents
+    assert "sudoku-theme" in script_contents
+    assert "setTheme" in script_contents
 
 
 def test_new_game_route_returns_a_puzzle_with_default_clues(client):

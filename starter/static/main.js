@@ -1,6 +1,7 @@
 // Client-side rendering and interaction for the Flask-backed Sudoku
 const SIZE = 9;
 const LEADERBOARD_STORAGE_KEY = 'sudoku-top-10';
+const THEME_STORAGE_KEY = 'sudoku-theme';
 let puzzle = [];
 let elapsedSeconds = 0;
 let timerInterval = null;
@@ -137,6 +138,42 @@ function saveCompletionToLeaderboard() {
   leaderboard.sort((left, right) => left.time - right.time || left.name.localeCompare(right.name));
   saveLeaderboardEntries(leaderboard.slice(0, 10));
   renderLeaderboard();
+}
+
+function setTheme(theme) {
+  const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
+  document.body.dataset.theme = normalizedTheme;
+
+  const toggleButton = document.getElementById('theme-toggle');
+  if (toggleButton) {
+    toggleButton.textContent = normalizedTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
+    toggleButton.setAttribute('aria-pressed', String(normalizedTheme === 'dark'));
+    toggleButton.setAttribute(
+      'aria-label',
+      normalizedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+    );
+  }
+
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, normalizedTheme);
+  } catch (error) {
+    console.warn('Unable to save theme preference.', error);
+  }
+}
+
+function readThemePreference() {
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return storedTheme === 'dark' ? 'dark' : 'light';
+  } catch (error) {
+    console.warn('Unable to read theme preference.', error);
+    return 'light';
+  }
+}
+
+function toggleTheme() {
+  const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+  setTheme(nextTheme);
 }
 
 async function readApiResponse(response) {
@@ -299,6 +336,9 @@ async function requestHint() {
 
 // Wire buttons
 window.addEventListener('load', () => {
+  const themeToggleButton = document.getElementById('theme-toggle');
+  setTheme(readThemePreference());
+  themeToggleButton.addEventListener('click', toggleTheme);
   document.getElementById('new-game').addEventListener('click', newGame);
   document.getElementById('difficulty').addEventListener('change', newGame);
   document.getElementById('check-solution').addEventListener('click', checkSolution);
