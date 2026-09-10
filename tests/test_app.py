@@ -38,6 +38,15 @@ def test_frontend_script_contains_local_storage_leaderboard_logic():
     assert "setTheme" in script_contents
 
 
+def test_frontend_script_contains_live_invalid_move_validation_and_grid_classes():
+    script_contents = FRONTEND_SCRIPT_PATH.read_text()
+
+    assert "updateInvalidMoveFeedback" in script_contents
+    assert "classList.add('conflict')" in script_contents
+    assert "block-even" in script_contents
+    assert "block-odd" in script_contents
+
+
 def test_new_game_route_returns_a_puzzle_with_default_clues(client):
     random.seed(1234)
 

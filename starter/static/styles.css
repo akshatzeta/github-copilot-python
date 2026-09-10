@@ -14,6 +14,8 @@
     --focused-bg: #e0f7fa;
     --incorrect-bg: #ffcdd2;
     --hinted-bg: #fff3cd;
+    --block-even: #f3f8ff;
+    --block-odd: #e8f0fe;
     --shadow: rgba(0, 0, 0, 0.08);
     --message-error: #d32f2f;
     --message-success: #388e3c;
@@ -45,6 +47,8 @@ body[data-theme="dark"] {
     --focused-bg: #1e3a5f;
     --incorrect-bg: #7f1d1d;
     --hinted-bg: #5b4d24;
+    --block-even: #1f2937;
+    --block-odd: #111827;
     --shadow: rgba(15, 23, 42, 0.4);
     --message-error: #fca5a5;
     --message-success: #86efac;
@@ -118,6 +122,15 @@ h1 {
     color: var(--text-color);
     transition: background 0.2s ease, color 0.2s ease;
     padding: 0;
+    box-sizing: border-box;
+}
+
+.sudoku-cell.block-even {
+    background: var(--block-even);
+}
+
+.sudoku-cell.block-odd {
+    background: var(--block-odd);
 }
 
 .sudoku-cell:focus {
@@ -128,6 +141,11 @@ h1 {
     background: var(--prefilled-bg);
     font-weight: bold;
     color: var(--text-color);
+}
+
+.sudoku-cell.invalid,
+.sudoku-cell.conflict {
+    box-shadow: inset 0 0 0 2px var(--message-error);
 }
 
 .sudoku-cell.incorrect {

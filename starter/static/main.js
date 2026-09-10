@@ -212,17 +212,90 @@ function createBoardElement() {
       const input = document.createElement('input');
       input.type = 'text';
       input.maxLength = 1;
-      input.className = 'sudoku-cell';
+      input.className = `sudoku-cell ${(i + Math.floor(i / 3)) % 2 === 0 ? 'block-even' : 'block-odd'}`;
       input.dataset.row = i;
       input.dataset.col = j;
       input.addEventListener('input', (e) => {
         const val = e.target.value.replace(/[^1-9]/g, '');
         e.target.value = val;
+        updateInvalidMoveFeedback();
       });
       rowDiv.appendChild(input);
     }
     boardDiv.appendChild(rowDiv);
   }
+}
+
+function getCellKey(row, col) {
+  return `${row},${col}`;
+}
+
+function updateInvalidMoveFeedback() {
+  const inputs = [...document.querySelectorAll('#sudoku-board .sudoku-cell')];
+  inputs.forEach((input) => {
+    input.classList.remove('invalid', 'conflict');
+  });
+
+  const boardValues = [];
+  for (let row = 0; row < SIZE; row++) {
+    boardValues[row] = [];
+    for (let col = 0; col < SIZE; col++) {
+      const input = inputs[row * SIZE + col];
+      const rawValue = input.value.trim();
+      boardValues[row][col] = rawValue ? parseInt(rawValue, 10) : 0;
+    }
+  }
+
+  const conflictingCells = new Set();
+  for (let row = 0; row < SIZE; row++) {
+    for (let col = 0; col < SIZE; col++) {
+      const value = boardValues[row][col];
+      if (value === 0) {
+        continue;
+      }
+
+      for (let otherCol = col + 1; otherCol < SIZE; otherCol++) {
+        if (boardValues[row][otherCol] === value) {
+          conflictingCells.add(getCellKey(row, col));
+          conflictingCells.add(getCellKey(row, otherCol));
+        }
+      }
+
+      for (let otherRow = row + 1; otherRow < SIZE; otherRow++) {
+        if (boardValues[otherRow][col] === value) {
+          conflictingCells.add(getCellKey(row, col));
+          conflictingCells.add(getCellKey(otherRow, col));
+        }
+      }
+
+      const startRow = Math.floor(row / 3) * 3;
+      const startCol = Math.floor(col / 3) * 3;
+      for (let boxRow = startRow; boxRow < startRow + 3; boxRow++) {
+        for (let boxCol = startCol; boxCol < startCol + 3; boxCol++) {
+          if ((boxRow === row && boxCol === col) || boardValues[boxRow][boxCol] !== value) {
+            continue;
+          }
+          conflictingCells.add(getCellKey(row, col));
+          conflictingCells.add(getCellKey(boxRow, boxCol));
+        }
+      }
+    }
+  }
+
+  conflictingCells.forEach((cellKey) => {
+    const [row, col] = cellKey.split(',').map(Number);
+    const input = inputs[row * SIZE + col];
+    if (!input || input.disabled) {
+      return;
+    }
+    input.classList.add('conflict');
+  });
+
+  inputs.forEach((input) => {
+    if (input.value && !input.disabled && input.classList.contains('conflict')) {
+      input.classList.add('invalid');
+    }
+  });
 }
 
 function renderPuzzle(puz) {
@@ -235,16 +308,18 @@ function renderPuzzle(puz) {
       const idx = i * SIZE + j;
       const val = puzzle[i][j];
       const inp = inputs[idx];
+      inp.classList.remove('prefilled', 'hinted', 'invalid', 'conflict', 'incorrect');
       if (val !== 0) {
         inp.value = val;
         inp.disabled = true;
-        inp.className += ' prefilled';
+        inp.classList.add('prefilled');
       } else {
         inp.value = '';
         inp.disabled = false;
       }
     }
   }
+  updateInvalidMoveFeedback();
 }
 
 async function newGame() {
@@ -327,8 +402,10 @@ async function requestHint() {
       return;
     }
     input.value = data.value;
-    input.className = 'sudoku-cell hinted';
+    input.classList.remove('invalid', 'conflict', 'incorrect');
+    input.className = `${input.className} hinted`;
     showMessage('A correct cell was filled in.', '#388e3c');
+    updateInvalidMoveFeedback();
   } catch (error) {
     showMessage(`Unable to get a hint: ${error.message}`);
   }
